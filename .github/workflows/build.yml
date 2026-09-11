@@ -1,0 +1,113 @@
+# Continuous integration.
+#
+# What this proves, and what it deliberately does not:
+#
+#   * The extension compiles against a real Ghidra 12.1.3 installation, and the
+#     archive it produces has the layout Ghidra's extension loader accepts.
+#   * The JSON layer passes its unit tests.
+#
+# It does NOT run the end-to-end suite (tools/e2e.ps1). That needs a Ghidra
+# installation with the extension installed as a module, a headless run, and a
+# live HTTP session; it is a local/pre-release check rather than something worth
+# paying for on every push. Run it before tagging a release.
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build extension and run unit tests
+    runs-on: windows-latest
+
+    env:
+      GHIDRA_VERSION: "12.1.3"
+      GHIDRA_DATE: "20260817"
+      GHIDRA_ROOT: ${{ github.workspace }}\ghidra-dist
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # The suite would fail with a clear message if this were missing, but a
+      # failing step here is easier to read than a failing build step.
+      - name: Verify the JDK satisfies Ghidra 12
+        shell: pwsh
+        run: |
+          java -version 2>&1 | Write-Host
+          $major = [int](java -version 2>&1 | Select-String -Pattern 'version "(\d+)' |
+            ForEach-Object { $_.Matches[0].Groups[1].Value })
+          if ($major -lt 21) { throw "Ghidra 12 requires JDK 21+, found $major" }
+
+      - name: Cache the Ghidra distribution
+        id: cache-ghidra
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.GHIDRA_ROOT }}
+          key: ghidra-${{ env.GHIDRA_VERSION }}-${{ env.GHIDRA_DATE }}
+
+      - name: Download Ghidra ${{ env.GHIDRA_VERSION }}
+        if: steps.cache-ghidra.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $url = "https://github.com/NationalSecurityAgency/ghidra/releases/download/" +
+                 "Ghidra_$($env:GHIDRA_VERSION)_build/" +
+                 "ghidra_$($env:GHIDRA_VERSION)_PUBLIC_$($env:GHIDRA_DATE).zip"
+          Write-Host "downloading $url"
+          New-Item -ItemType Directory -Force -Path $env:GHIDRA_ROOT | Out-Null
+          Invoke-WebRequest -Uri $url -OutFile "$env:GHIDRA_ROOT\ghidra.zip" -UseBasicParsing
+          Expand-Archive -Path "$env:GHIDRA_ROOT\ghidra.zip" -DestinationPath $env:GHIDRA_ROOT -Force
+          Remove-Item "$env:GHIDRA_ROOT\ghidra.zip"
+
+      - name: Locate the Ghidra installation
+        id: ghidra
+        shell: pwsh
+        run: |
+          $dir = Get-ChildItem $env:GHIDRA_ROOT -Directory |
+            Where-Object { $_.Name -like "ghidra_*_PUBLIC" } |
+            Select-Object -First 1
+          if (-not $dir) { throw "no ghidra_*_PUBLIC directory under $env:GHIDRA_ROOT" }
+          "dir=$($dir.FullName)" >> $env:GITHUB_OUTPUT
+          Write-Host "GHIDRA_INSTALL_DIR=$($dir.FullName)"
+          Get-Content (Join-Path $dir.FullName "Ghidra\application.properties") |
+            Select-String -Pattern "application.version|application.java.compiler" | Write-Host
+
+      - name: Build the extension and validate the archive
+        shell: pwsh
+        run: |
+          ./tools/build.ps1 -GhidraDir "${{ steps.ghidra.outputs.dir }}" -JdkHome $env:JAVA_HOME
+
+      - name: Run the JSON unit tests
+        shell: pwsh
+        run: ./tools/test-json.ps1 -JdkHome $env:JAVA_HOME
+
+      - name: Upload the extension archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: GhidraMCP12-extension
+          path: dist/*.zip
+          if-no-files-found: error
+
+      # A second opinion on the build: the official Gradle path must also work,
+      # because that is what a contributor following docs/INSTALL.md will try
+      # first. It catches packaging leaks the offline build cannot see.
+      - name: Build with the official Gradle path
+        shell: pwsh
+        env:
+          GHIDRA_INSTALL_DIR: ${{ steps.ghidra.outputs.dir }}
+        run: |
+          & "${{ steps.ghidra.outputs.dir }}\support\gradle\gradlew.bat" -p . buildExtension --console=plain
+          ./tools/verify_zip.ps1

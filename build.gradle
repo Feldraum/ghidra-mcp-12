@@ -1,0 +1,60 @@
+/* ###
+ * GhidraMCP12 - a Model Context Protocol bridge for Ghidra 12.1.3
+ *
+ * Builds a Ghidra Extension zip. An absolute path to the Ghidra installation
+ * directory must be supplied either by setting the GHIDRA_INSTALL_DIR
+ * environment variable, the gradle property in gradle.properties, or with
+ * -PGHIDRA_INSTALL_DIR=<path>.
+ *
+ * Build with the Gradle wrapper shipped inside Ghidra (Gradle 9.x):
+ *
+ *   D:\zstudytools\ghidra_12.1.3_PUBLIC\support\gradle\gradlew.bat -p . buildExtension
+ */
+
+//----------------------START "DO NOT MODIFY" SECTION------------------------------
+def ghidraInstallDir
+
+if (System.env.GHIDRA_INSTALL_DIR) {
+	ghidraInstallDir = System.env.GHIDRA_INSTALL_DIR
+}
+else if (project.hasProperty("GHIDRA_INSTALL_DIR")) {
+	ghidraInstallDir = project.getProperty("GHIDRA_INSTALL_DIR")
+}
+else {
+	ghidraInstallDir = "<REPLACE>"
+}
+
+task distributeExtension {
+	group = "Ghidra"
+
+	apply from: new File(ghidraInstallDir).getCanonicalPath() + "/support/buildExtension.gradle"
+	dependsOn ':buildExtension'
+}
+//----------------------END "DO NOT MODIFY" SECTION-------------------------------
+
+repositories {
+	// No external dependencies: this extension is deliberately dependency free so
+	// that the built zip is self contained and cannot conflict with Ghidra's
+	// own classpath (Gson, Jackson, Netty ... are intentionally not used).
+}
+
+dependencies {
+}
+
+// Do not ship build/test scaffolding, developer tooling or local configuration in
+// the extension zip. buildExtension already excludes build/, dist/, src/, *.gradle
+// and the Gradle wrapper; everything below is specific to this project.
+//
+// tests/ and tools/ matter most: tools/ holds the build and test scripts and
+// tests/ holds the MCP client test. Neither belongs in an installed extension.
+buildExtension.exclude 'tests/**'
+buildExtension.exclude 'tools/**'
+buildExtension.exclude 'docs/**'
+buildExtension.exclude 'lib/test/**'
+// gradle.properties only records GHIDRA_INSTALL_DIR for local builds; shipping it
+// would put a machine-specific path inside the extension.
+buildExtension.exclude 'gradle.properties'
+buildExtension.exclude '*.md'
+buildExtension.exclude 'compile.log'
+
+// The MCP server that ships inside the zip lives in mcp/ (see mcp/ directory).

@@ -1,0 +1,79 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: the most common causes of "it does nothing" are covered in
+        [docs/INSTALL.md § Troubleshooting](../blob/main/docs/INSTALL.md#troubleshooting).
+        In particular, an extension zip with the wrong internal layout installs
+        "successfully" and is then ignored, and a missing
+        `data/ExtensionPoint.manifest` means the plugin is never loaded.
+
+  - type: input
+    id: ghidra-version
+    attributes:
+      label: Ghidra version
+      description: From Help > About, or `Ghidra/application.properties`
+      placeholder: "12.1.3"
+    validations:
+      required: true
+
+  - type: input
+    id: jdk-version
+    attributes:
+      label: JDK version
+      description: Output of `java -version`
+      placeholder: "openjdk version 21.0.2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: health
+    attributes:
+      label: Bridge health output
+      description: Output of `curl.exe http://127.0.0.1:8192/_health`
+      render: json
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it fail?
+      options:
+        - Building the extension
+        - Installing or enabling the plugin
+        - The bridge does not answer at all
+        - A specific endpoint or MCP tool returns the wrong thing
+        - A request hangs
+        - The MCP server (Python side)
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got. For an endpoint, give the exact request.
+      placeholder: |
+        Request: GET /functions/search?query=main
+        Expected: matching functions
+        Got: HTTP 500 with ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: trace
+    attributes:
+      label: Debug trace
+      description: |
+        For anything involving a failed or hanging request, set
+        **Edit → Tool Options → GhidraMCP12 → Debug Log File** to a path,
+        reproduce the problem, and paste the tail of that file. It shows exactly
+        how far the request got.
+      render: text
+    validations:
+      required: false

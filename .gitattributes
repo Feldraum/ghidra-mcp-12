@@ -1,0 +1,25 @@
+# Normalise line endings on commit so the repository stays consistent regardless
+# of the platform a contributor is on.
+* text=auto eol=lf
+
+# Windows scripts must keep CRLF: cmd.exe and PowerShell handle LF-only .bat/.cmd
+# files inconsistently, and mixed endings break them outright.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# GitHub reads Markdown and YAML either way, but keep them LF for diff sanity.
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.gradle text eol=lf
+*.java text eol=lf
+*.py text eol=lf
+
+# Binary-ish files: never touch them.
+*.jar binary
+*.zip binary
+*.exe binary
+*.dll binary
+*.png binary
+*.ico binary

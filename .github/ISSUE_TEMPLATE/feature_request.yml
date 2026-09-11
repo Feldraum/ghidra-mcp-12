@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest a new endpoint, MCP tool, or capability
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The bridge already exposes 162 endpoints, and any of them is reachable
+        from an MCP client through `ghidra_find_operations` + `ghidra_call`. If
+        what you want is already there, that path means no code change is needed.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the reverse-engineering task, not the API you have in mind — it often has a simpler answer.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: What have you tried?
+      description: Which endpoint or tool did you try, and why was it not enough?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What would this be?
+      options:
+        - A new HTTP endpoint
+        - A new first-class MCP tool
+        - A change to an existing endpoint's behaviour
+        - Documentation
+        - Build or tooling
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        Note on new MCP tools: the server deliberately keeps a small typed tool
+        set and exposes everything else generically, so new tools are added when
+        an operation is common enough to deserve a name — not for symmetry.

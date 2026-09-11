@@ -1,0 +1,22 @@
+# Build output. The extension zip is a release artifact, not a committed file:
+# tools/build.ps1 regenerates it, and CI uploads it as a build artifact.
+build/
+dist/
+
+# Gradle
+.gradle/
+gradle-app.setting
+
+# Test dependencies fetched on demand by tools/test-json.ps1. They are gitignored
+# rather than committed because the zip never contains them (build.gradle excludes
+# lib/test/**) and a JDK is already required to build this project.
+lib/test/
+
+# End-to-end scratch: tools/e2e.ps1 creates a throwaway Ghidra project and a
+# request trace here.
+tests/proj/
+tests/*.log
+
+# Local configuration and logs
+compile.log
+*.log

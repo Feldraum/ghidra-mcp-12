@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation and troubleshooting
+    url: https://github.com/Feldraum/ghidra-mcp-12/blob/main/docs/INSTALL.md
+    about: Install steps, tool options, and the failure modes people hit most.
+  - name: API and endpoint reference
+    url: https://github.com/Feldraum/ghidra-mcp-12/blob/main/docs/API.md
+    about: All 162 endpoints, their parameters and response shapes.
+  - name: MCP client setup
+    url: https://github.com/Feldraum/ghidra-mcp-12/blob/main/docs/MCP.md
+    about: Wiring the server into Claude Desktop/Code, Cursor, or another client.
